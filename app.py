@@ -126,9 +126,10 @@ def golden_metric(df):
     return df
     
 # Apply golden metrics on months 
-
+total_mar = mar.copy()
 feb = golden_metric(feb)
 mar = golden_metric(mar)
+
 
 st.markdown("<h2 style='text-align: left;'>Current Month Analysis</h1>", unsafe_allow_html=True)
 
@@ -138,7 +139,7 @@ st.markdown("<h2 style='text-align: left;'>Current Month Analysis</h1>", unsafe_
 cols = ['RANK', 'TITLE', 'SPORTS', 'ENTITY', 'EDITOR', 'WRITER', 'DOMAINS','TOTAL PAGEVIEWS', 
         'SCROLL RATE', 'PAGE TIME','ENGAGE RATE % (AFTER PARA1)']
 
-with st.expander("Top 20 Articles", expanded=False ):
+with st.expander("Top 20 Articles", expanded= False):
     aggrid_interactive_table(mar.loc[:,cols].head(20))
 
 # Sportwise
@@ -181,7 +182,7 @@ with st.expander("Entitywise - Top 5 Articles", expanded=False ):
     aggrid_interactive_table(entitywise.loc[:,cols])
 
 
-sources = mar.groupby(['DOMAINS'], as_index = False)['TOTAL PAGEVIEWS'].sum().sort_values(by = 'TOTAL PAGEVIEWS', ascending = False).reset_index(drop = True).head(5)
+sources = total_mar.groupby(['domains'], as_index = False)['total pageviews'].sum().sort_values(by = 'total pageviews', ascending = False).reset_index(drop = True).head(5)
 
 
 ### Source Chart
@@ -209,8 +210,8 @@ ax.patch.set_facecolor(background)
 ax.grid(ls="dotted",lw="0.3",color="lightgrey", zorder= 1, visible = True)
 
 # Create data for pie chart
-sizes = sources['TOTAL PAGEVIEWS']
-labels = sources['DOMAINS']
+sizes = sources['total pageviews']
+labels = sources['domains']
 colors = ['#F94144', '#F8961E', '#F9C74F', '#90BE6D', '#43AA8B']
 
 # set the width and height of the chart
@@ -230,13 +231,13 @@ ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90, ra
 ax.legend(labels, title="Sources", loc="lower right", bbox_to_anchor=(1, 0, 0.5, 1))
 
 # For badge: Adding new axes
-ax2 = fig.add_axes([0.04,0.99,0.1,0.14])
-ax2.axis("off")
+ax1 = fig.add_axes([0.04,0.99,0.1,0.14])
+ax1.axis("off")
 
 url = "https://image-cdn.essentiallysports.com/wp-content/uploads/es_short_logo-1.png"
 response = requests.get(url)
 img = Image.open(BytesIO(response.content))
-ax2.imshow(img)     
+ax1.imshow(img)     
 
 # Adding Credits
 fig.text(0.05, -0.028, "Data powered by content strategy", fontstyle="italic", fontsize=12, 
@@ -247,3 +248,74 @@ plt.tight_layout()
 st.markdown("<h4> Top 5 sources</h4>", unsafe_allow_html=True)
 
 st.pyplot(plt.gcf())
+
+
+
+# MoM comparison 
+feb_count = feb.groupby(['SPORTS'], as_index = False)['TITLE'].nunique()
+mar_count = mar.groupby(['SPORTS'], as_index = False)['TITLE'].nunique()
+
+st.markdown("<h4> MoM comparison of #articles having > 10K </h4>", unsafe_allow_html=True)
+# Create data for pie chart
+labels = feb_count.SPORTS
+feb_count = feb_count.TITLE
+mar_count = mar_count.TITLE
+
+# Define the options for the chart
+options = {
+    "legend": {
+                "data": ['Feb', 'Mar'],   
+                "textStyle": {
+                        'color': 'white', # Set the color of the value labels to white
+                        'fontWeight': 'bold', # Set the font weight of the value labels to bold
+                        'fontSize': 12 # Set the font size of the value labels to 14 pixels
+                }
+        },
+    "xAxis": {"data": labels.tolist(),    
+              'axisLabel': {
+                'textStyle': {
+                    'color': 'white', # Set the color of the label text to red
+                    'fontSize': 12 # Set the font size of the label text to 14 pixels
+                }
+            }
+        },
+    "yAxis": {},
+    "series": [
+        {   "name": "Feb", 
+            "type": "bar", 
+            "data":feb_count.tolist(),  
+            "label": {
+                "show": True,
+                "position": "top",
+                 'textStyle': {
+                    'color': 'white', # Set the color of the value labels to white
+                    'fontWeight': 'bold', # Set the font weight of the value labels to bold
+                    'fontSize': 14 # Set the font size of the value labels to 14 pixels
+                }
+            },
+            "itemStyle": {
+                "color": "#F94144"
+            }
+        },
+        {   "name": "Mar", 
+            "type": "bar", 
+            "data": mar_count.tolist(),  
+            "label": {
+                "show": True,
+                "position": "top",
+                'textStyle': {
+                    'color': 'white', # Set the color of the value labels to white
+                    'fontWeight': 'bold', # Set the font weight of the value labels to bold
+                    'fontSize': 14 # Set the font size of the value labels to 14 pixels
+                }
+            },
+            "itemStyle": {
+                "color": "#F8961E"
+            }
+        },
+    ],
+
+}
+
+# Display the chart using the st_echarts function
+st_echarts(options=options, height="400px")
